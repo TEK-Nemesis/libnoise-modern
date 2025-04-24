@@ -13,7 +13,7 @@ To build the examples, use the build scripts in the main `libnoise-modern` folde
 - **Windows**: Run `build_windows.bat` and select option 3 (Shared Library with `libnoise`, `noiseutils`, and examples).
 - **Linux**: Run `./build_linux.sh` and select option 3.
 
-The compiled executables (e.g., `worms.exe` on Windows, `worms` on Linux) will be placed in the `bin` folder. Run them directly to see the generated outputs, which may include noise maps, images, or terrain files (e.g., BMP, TER).
+The compiled executables (e.g., `worms.exe` on Windows, `worms` on Linux) will be placed in the `bin` folder. Run them directly to see the generated outputs, which may include noise maps, images, or terrain files (e.g., BMP, RAW).
 
 ## SourceForge Reference
 
