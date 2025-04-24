@@ -63,6 +63,9 @@
 // - Changed g_pTextureData to const char* to comply with modern C++ string literal rules.
 // - Updated GLEW include to use <GL/glew.h> instead of <GL/glext.h>.
 // - Reordered includes to ensure <GL/glew.h> comes before <GL/gl.h> to comply with GLEW requirements.
+// - Removed <GL/gl.h> include, relying solely on <GL/glew.h> to avoid conflicts with system headers.
+// - Renamed Display() to RenderFrame() to avoid naming conflict with X11's Display type.
+// - Fixed KeySym initialization in HandleXEvents() to comply with C++ scoping rules.
 // - Retained real-time animation of worms using basic OpenGL rendering.
 
 #ifdef _WIN32
@@ -86,7 +89,6 @@
 #include <fstream>
 
 #include <GL/glew.h>
-#include <GL/gl.h>
 
 #include <noise/noise.h>
 #include <noise/mathconsts.h>
@@ -178,7 +180,7 @@ HDC hDC = NULL;
 HGLRC hRC = NULL;
 HWND hWnd = NULL;
 #else
-Display* display = NULL;
+struct _XDisplay* display = NULL;
 Window window;
 GLXContext glContext = NULL;
 #endif
@@ -597,6 +599,12 @@ bool InitGLWindows()
     return false;
   }
 
+  // Verify required OpenGL extensions.
+  if (!GLEW_VERSION_3_0 && !GLEW_EXT_framebuffer_object) {
+    std::cerr << "OpenGL 3.0 or GL_EXT_framebuffer_object required for glGenerateMipmap but not supported." << std::endl;
+    return false;
+  }
+
   ShowWindow(hWnd, SW_SHOW);
   return true;
 }
@@ -671,6 +679,12 @@ bool InitGLX()
     return false;
   }
 
+  // Verify required OpenGL extensions.
+  if (!GLEW_VERSION_3_0 && !GLEW_EXT_framebuffer_object) {
+    std::cerr << "OpenGL 3.0 or GL_EXT_framebuffer_object required for glGenerateMipmap but not supported." << std::endl;
+    return false;
+  }
+
   return true;
 }
 
@@ -695,6 +709,7 @@ void HandleXEvents()
     XNextEvent(display, &event);
     switch (event.type) {
       case KeyPress:
+      {
         KeySym key = XLookupKeysym(&event.xkey, 0);
         switch (key) {
           case XK_q:
@@ -764,6 +779,7 @@ void HandleXEvents()
           g_wormArray[i].SetTwistiness(g_wormTwistiness);
         }
         break;
+      }
       case Expose:
         break;
     }
@@ -786,7 +802,7 @@ void Reshape(int w, int h)
   glLoadIdentity();
 }
 
-void Display()
+void RenderFrame()
 {
   glClear(GL_COLOR_BUFFER_BIT);
 
@@ -879,7 +895,7 @@ int main(int argc, char** argv)
 
   // Main loop.
   while (running) {
-    Display();
+    RenderFrame();
 
 #ifdef _WIN32
     MSG msg;
