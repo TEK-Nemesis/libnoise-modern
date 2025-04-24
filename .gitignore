@@ -27,6 +27,7 @@ Makefile
 *.vcxproj.user
 
 # Temporary files
+*.bak
 *.swp
 *.swo
 *~

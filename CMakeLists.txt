@@ -26,6 +26,11 @@ foreach(CONFIG_TYPE Debug Release)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} "${CMAKE_BINARY_DIR}/lib/${CONFIG_TYPE}")
 endforeach()
 
+# Set CMake policy CMP0135 to NEW for FetchContent downloads
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif()
+
 # Options for build configuration
 option(BUILD_SHARED_LIBS "Build shared libraries instead of static" OFF)
 option(BUILD_NOISEUTILS "Build the noiseutils library" ON)
@@ -59,23 +64,35 @@ endif()
 
 # Add the examples if enabled
 if(BUILD_EXAMPLES)
-    # Fetch FreeGLUT dependency for worms example
+    # Fetch GLEW 2.2.0 from Perlmint/glew-cmake
+    message(STATUS "Fetching GLEW...")
     include(FetchContent)
     FetchContent_Declare(
-        freeglut
-        GIT_REPOSITORY https://github.com/freeglut/freeglut.git
-        GIT_TAG v3.6.0
+        glew
+        URL https://github.com/Perlmint/glew-cmake/archive/refs/tags/glew-cmake-2.2.0.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
 
-    # Set FreeGLUT options before making it available
-    set(FREEGLUT_BUILD_SHARED_LIBS OFF CACHE BOOL "Build FreeGLUT as a shared library" FORCE)
-    set(FREEGLUT_BUILD_STATIC_LIBS ON CACHE BOOL "Build FreeGLUT as a static library" FORCE)
-    set(FREEGLUT_BUILD_DEMOS OFF CACHE BOOL "Disable FreeGLUT demos" FORCE)
+    # Set GLEW build options
+    set(glew-cmake_BUILD_SHARED OFF CACHE BOOL "Build GLEW as a static library" FORCE)
+    set(glew-cmake_BUILD_STATIC ON CACHE BOOL "Build GLEW static library" FORCE)
+    set(glew-cmake_BUILD_UTILS OFF CACHE BOOL "Disable GLEW utils (glewinfo, visualinfo)" FORCE)
 
-    FetchContent_MakeAvailable(freeglut)
+    FetchContent_MakeAvailable(glew)
 
-    # FreeGLUT requires OpenGL
-    find_package(OpenGL REQUIRED)
+    # Set MSVC runtime library for GLEW static library
+    set_target_properties(libglew_static PROPERTIES
+        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
+    )
+
+    # Platform-specific libraries
+    if(WIN32)
+        set(PLATFORM_LIBRARIES opengl32 user32)
+    else()
+        find_package(X11 REQUIRED)
+        find_package(OpenGL REQUIRED)
+        set(PLATFORM_LIBRARIES ${OPENGL_gl_LIBRARY} ${X11_LIBRARIES} GLX)
+    endif()
 
     # Define source files for examples
     file(GLOB EXAMPLE_SOURCES "${CMAKE_SOURCE_DIR}/examples/*.cpp")
@@ -89,6 +106,7 @@ if(BUILD_EXAMPLES)
         target_include_directories(${EXAMPLE_NAME} PRIVATE
             "${CMAKE_SOURCE_DIR}/noise/include"
             "${CMAKE_SOURCE_DIR}/noiseutils"
+            "${glew_SOURCE_DIR}/include"
         )
 
         # Link libraries
@@ -98,38 +116,44 @@ if(BUILD_EXAMPLES)
             target_link_libraries(${EXAMPLE_NAME} PRIVATE libnoise)
         endif()
 
-        # Link FreeGLUT and OpenGL for worms example
-        if(EXAMPLE_NAME STREQUAL "worms")
-            target_include_directories(${EXAMPLE_NAME} PRIVATE
-                "${freeglut_SOURCE_DIR}/include"
-            )
-            target_link_libraries(${EXAMPLE_NAME} PRIVATE
-                freeglut_static
-                OpenGL::GL
-            )
-        endif()
+        # Link GLEW and platform-specific libraries for all examples
+        target_link_libraries(${EXAMPLE_NAME} PRIVATE libglew_static ${PLATFORM_LIBRARIES})
 
-        # If building shared libraries, copy DLLs to the executable's output directory
+        # If building shared libraries, copy shared libraries to the executable's output directory
         if(BUILD_SHARED_LIBS)
             # Determine the configuration-specific output directory
             if(CMAKE_GENERATOR MATCHES "Visual Studio" OR CMAKE_GENERATOR MATCHES "Ninja Multi-Config")
                 set(EXECUTABLE_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>")
-                set(DLL_SOURCE_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>")
+                set(SHARED_LIB_SOURCE_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>")
             else()
                 set(EXECUTABLE_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-                set(DLL_SOURCE_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+                set(SHARED_LIB_SOURCE_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
             endif()
 
-            # Copy libnoise.dll and noiseutils.dll to the executable's directory
-            add_custom_command(TARGET ${EXAMPLE_NAME} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "${DLL_SOURCE_DIR}/libnoise.dll"
-                    "${EXECUTABLE_OUTPUT_DIR}"
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "${DLL_SOURCE_DIR}/noiseutils.dll"
-                    "${EXECUTABLE_OUTPUT_DIR}"
-                COMMENT "Copying libnoise.dll and noiseutils.dll to ${EXECUTABLE_OUTPUT_DIR}"
-            )
+            # Copy libnoise and noiseutils shared libraries
+            if(WIN32)
+                # Windows: Copy .dll files
+                add_custom_command(TARGET ${EXAMPLE_NAME} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${SHARED_LIB_SOURCE_DIR}/libnoise.dll"
+                        "${EXECUTABLE_OUTPUT_DIR}"
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${SHARED_LIB_SOURCE_DIR}/noiseutils.dll"
+                        "${EXECUTABLE_OUTPUT_DIR}"
+                    COMMENT "Copying libnoise.dll and noiseutils.dll to ${EXECUTABLE_OUTPUT_DIR}"
+                )
+            else()
+                # Linux: Copy .so files
+                add_custom_command(TARGET ${EXAMPLE_NAME} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${SHARED_LIB_SOURCE_DIR}/libnoise.so"
+                        "${EXECUTABLE_OUTPUT_DIR}"
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${SHARED_LIB_SOURCE_DIR}/libnoiseutils.so"
+                        "${EXECUTABLE_OUTPUT_DIR}"
+                    COMMENT "Copying libnoise.so and noiseutils.so to ${EXECUTABLE_OUTPUT_DIR}"
+                )
+            endif()
         endif()
     endforeach()
 endif()
