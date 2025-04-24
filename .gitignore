@@ -1,0 +1,36 @@
+# Build artifacts
+build/
+bin/
+lib/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+*.exp
+*.pdb
+
+# CMake-generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# IDE-specific files
+.vscode/
+.idea/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Dependency directories
+out/
+_deps/
