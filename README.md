@@ -54,7 +54,7 @@ The repository includes a robust build system based on CMake, with separate conf
 
 ### Build Scripts
 
-To simplify the build process, cross-platform scripts are provided which will display a menu of output options (e.g. creation of DLL, in the main folder:
+To simplify the build process, cross-platform scripts are provided which will display a menu of output options (e.g. creation of DLL), in the main folder:
 
 - **Windows**: `build_windows.bat`
   - Cleans old build artifacts.
