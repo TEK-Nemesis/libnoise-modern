@@ -109,7 +109,7 @@ Please ensure your code adheres to C++17 standards and includes appropriate test
 
 ## License
 
-`libnoise-modern` is licensed under the GNU Lesser General Public License (LGPL) version 2.1 or later, consistent with the original `libnoise` library. See `COPYING.txt` for details.
+`libnoise-modern` is licensed under the GNU Lesser General Public License (LGPL) version 2.1 or later, consistent with the original `libnoise` library. 
 
 ## Version
 
