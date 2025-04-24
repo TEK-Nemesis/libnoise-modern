@@ -45,6 +45,110 @@ These changes enhance the library’s reliability, maintainability, and performa
 - Users can parallelize noise generation across multiple threads (e.g., dividing a terrain grid into chunks).
 - Example applications demonstrate thread-safe usage, and the library’s design supports integration with multithreaded game engines or simulations.
 
+## Getting Started
+
+This section guides you through downloading or cloning the `libnoise-modern` repository and preparing your Linux or Windows environment to run the build scripts (`build_linux.sh` for Linux, `build_windows.bat` for Windows). Once set up, you can proceed to the "Build System" section to compile and run the library.
+
+### Step 1: Download or Clone the Repository
+
+- **Download the Release**:
+  - Go to [github.com/TEK-Nemesis/libnoise-modern/releases](https://github.com/TEK-Nemesis/libnoise-modern/releases).
+  - Find the v1.1.0 release and download the source code (`libnoise-modern-1.1.0.zip` or `libnoise-modern-1.1.0.tar.gz`).
+  - Extract the archive to a working directory (e.g., `~/projects` on Linux, `C:\Projects` on Windows):
+    - **Linux**:
+      ```bash
+      mkdir -p ~/projects
+      mv ~/Downloads/libnoise-modern-1.1.0.zip ~/projects/
+      cd ~/projects
+      unzip libnoise-modern-1.1.0.zip
+      cd libnoise-modern-1.1.0
+      ```
+    - **Windows**:
+      - Use File Explorer to extract `libnoise-modern-1.1.0.zip` to `C:\Projects`.
+      - Open Command Prompt and navigate to the folder:
+        ```cmd
+        cd C:\Projects\libnoise-modern-1.1.0
+        ```
+- **Clone the Repository** (Alternative):
+  - Ensure Git is installed (`git --version`).
+  - Clone the repository:
+    ```bash
+    git clone https://github.com/TEK-Nemesis/libnoise-modern.git
+    cd libnoise-modern
+    git checkout v1.1.0
+    ```
+
+### Step 2: Prepare Your Environment
+
+#### Linux
+- **Install Dependencies**:
+  - Install a C++17-compliant compiler (e.g., GCC 9+), CMake (3.5+), build tools, and libraries for OpenGL and X11 (required by `freeglut` for examples):
+    - **Ubuntu/Debian**:
+      ```bash
+      sudo apt update
+      sudo apt install -y build-essential cmake g++ libgl1-mesa-dev libx11-dev libxrandr-dev
+      ```
+    - **Fedora**:
+      ```bash
+      sudo dnf install -y gcc-c++ cmake make mesa-libGL-devel libX11-devel libXrandr-devel
+      ```
+    - **Arch Linux**:
+      ```bash
+      sudo pacman -Syu base-devel cmake gcc mesa-libgl libx11 libxrandr
+      ```
+  - Verify installations:
+    ```bash
+    g++ --version
+    cmake --version
+    make --version
+    ```
+- **Make the Script Executable**:
+  - Ensure `build_linux.sh` has execute permissions:
+    ```bash
+    chmod +x build_linux.sh
+    ```
+
+#### Windows
+- **Install Visual Studio 2022**:
+  - Download and install Visual Studio 2022 Community Edition from [visualstudio.microsoft.com](https://visualstudio.microsoft.com/vs/community/).
+  - During installation, select the “Desktop development with C++” workload to include the C++17 compiler (MSVC) and CMake integration.
+  - Verify installation by opening Command Prompt and checking:
+    ```cmd
+    cl
+    ```
+    You should see the MSVC compiler version (e.g., `cl : Microsoft (R) C/C++ Optimizing Compiler Version 19.XX`).
+- **Install CMake**:
+  - Download CMake from [cmake.org/download](https://cmake.org/download/) (e.g., Windows win64-x64 Installer).
+  - Install CMake and add it to the system PATH during setup.
+  - Verify:
+    ```cmd
+    cmake --version
+    ```
+- **Install Git (Optional, for Cloning)**:
+  - If cloning the repository, download Git for Windows from [git-scm.com](https://git-scm.com/download/win).
+  - Install and verify:
+    ```cmd
+    git --version
+    ```
+- **Install OpenGL Libraries**:
+  - The examples require OpenGL, which Visual Studio typically supports via `opengl32.lib` (included). No additional installation is needed for OpenGL itself.
+  - However, the `freeglut` dependency (used by examples) is fetched by CMake and built automatically, so no manual installation is required.
+
+### Step 3: Verify Setup
+- Ensure you’re in the `libnoise-modern` root directory:
+  - Linux: `~/projects/libnoise-modern-1.1.0`
+  - Windows: `C:\Projects\libnoise-modern-1.1.0`
+- Confirm the build scripts are present:
+  - Linux:
+    ```bash
+    ls build_linux.sh
+    ```
+  - Windows:
+    ```cmd
+    dir build_windows.bat
+    ```
+- You’re now ready to proceed to the "Build System" section to compile and run the library.
+
 ## Build System
 
 The repository includes a robust build system based on CMake, with separate configurations for the core library and utilities:
@@ -54,7 +158,7 @@ The repository includes a robust build system based on CMake, with separate conf
 
 ### Build Scripts
 
-To simplify the build process, cross-platform scripts are provided which will display a menu of output options (e.g. creation of DLL), in the main folder:
+To simplify the build process, cross-platform scripts are provided which will display a menu of output options (e.g. creation of DLL, in the main folder:
 
 - **Windows**: `build_windows.bat`
   - Cleans old build artifacts.
@@ -109,7 +213,7 @@ Please ensure your code adheres to C++17 standards and includes appropriate test
 
 ## License
 
-`libnoise-modern` is licensed under the GNU Lesser General Public License (LGPL) version 2.1 or later, consistent with the original `libnoise` library. 
+`libnoise-modern` is licensed under the GNU Lesser General Public License (LGPL) version 2.1 or later, consistent with the original `libnoise` library. See `COPYING.txt` for details.
 
 ## Version
 
