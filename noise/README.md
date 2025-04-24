@@ -4,7 +4,7 @@
 
 The `noise` folder contains the core `libnoise` library, the heart of the `libnoise-modern` repository (version 1.1.0). Originally developed by **Jason Bevins**, `libnoise` is a powerful library for generating coherent noise, widely used for procedural content creation in games, simulations, and visualizations. This modernized version, updated by **TEK Nemesis**, leverages C++17 features to enhance performance, safety, and cross-platform compatibility while preserving the original functionality.
 
-For detailed information on noise modules, their usage, and mathematical foundations, refer to the original `libnoise` documentation at libnoise.sourceforge.net. The main `libnoise-modern` README (`../README.markdown`) provides a comprehensive overview of the repository, including modernization details and features.
+For detailed information on noise modules, their usage, and mathematical foundations, refer to the original `libnoise` documentation at libnoise.sourceforge.net. The main `libnoise-modern` README (`../README.md`) provides a comprehensive overview of the repository, including modernization details and features.
 
 ## Purpose
 
@@ -85,7 +85,7 @@ No external libraries are required for `libnoise` itself, but `noiseutils` and e
 ## Documentation
 
 - **Original libnoise Documentation**: Explore libnoise.sourceforge.net for detailed explanations of noise modules, their applications, and usage examples.
-- **Main Repository README**: Refer to `../README.markdown` for an overview of `libnoise-modern`, including C++17 modernization details, multithreading support, and build script usage.
+- **Main Repository README**: Refer to `../README.md` for an overview of `libnoise-modern`, including C++17 modernization details, multithreading support, and build script usage.
 - **Source Code Comments**: The `noise` folder’s header files (e.g., `module/perlin.h`, `module/voronoi.h`) include updated Doxygen comments for class and method details.
 
 ## Credits
