@@ -18,10 +18,6 @@
 # the project in an IDE, you can generate project files for your preferred
 # IDE using CMake (e.g., cmake -G "CodeBlocks - Unix Makefiles").
 #
-# Created by Grok on April 25, 2025, as a Linux equivalent to build_vs2022.bat
-# for cross-platform compatibility.
-# Updated by Grok on April 28, 2025:
-# - Added cleanup of build directories in subdirectories (noise, examples, noiseutils).
 
 # Function to check if a command exists
 command_exists() {
@@ -54,7 +50,8 @@ fi
 
 # Set the source directory to the current directory
 SOURCE_DIR=$(pwd)
-BUILD_DIR="$SOURCE_DIR/build"
+BUILD_DIR_DEBUG="$SOURCE_DIR/build/Debug"
+BUILD_DIR_RELEASE="$SOURCE_DIR/build/Release"
 
 # Function to display the menu
 display_menu() {
@@ -79,7 +76,42 @@ display_menu() {
     echo
 }
 
-# Function to handle the build process
+# Function to handle the build process for a single configuration
+build_config() {
+    local BUILD_DIR=$1
+    local CONFIG=$2
+    local SHARED_LIBS=$3
+    local NOISEUTILS=$4
+    local EXAMPLES=$5
+
+    echo "Creating build directory for $CONFIG..."
+    mkdir -p "$BUILD_DIR"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to create build directory: $BUILD_DIR"
+        exit 1
+    fi
+
+    echo "Generating build system for $CONFIG in $BUILD_DIR..."
+    cd "$BUILD_DIR"
+    cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=$CONFIG -DBUILD_SHARED_LIBS="$SHARED_LIBS" -DBUILD_NOISEUTILS="$NOISEUTILS" -DBUILD_EXAMPLES="$EXAMPLES" "$SOURCE_DIR"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: CMake generation for $CONFIG failed. Please check the output above for details."
+        cd "$SOURCE_DIR"
+        exit 1
+    fi
+
+    echo "Building $CONFIG configuration..."
+    make -j$(nproc)
+    if [ $? -ne 0 ]; then
+        echo "ERROR: $CONFIG build failed. Please check the output above for details."
+        cd "$SOURCE_DIR"
+        exit 1
+    fi
+
+    cd "$SOURCE_DIR"
+}
+
+# Function to handle the build process for both Debug and Release
 build_project() {
     local SHARED_LIBS=$1
     local NOISEUTILS=$2
@@ -87,60 +119,33 @@ build_project() {
 
     # Delete old build directories in the root and subdirectories
     echo "Cleaning old build artifacts..."
-    rm -rf "$BUILD_DIR"
+    rm -rf "$SOURCE_DIR/build"
     for dir in noise examples noiseutils; do
         if [ -d "$SOURCE_DIR/$dir/build" ]; then
             rm -rf "$SOURCE_DIR/$dir/build"
         fi
     done
 
-    # Create build directory
-    echo "Creating build directory..."
-    mkdir -p "$BUILD_DIR"
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Failed to create build directory: $BUILD_DIR"
-        exit 1
-    fi
-
-    # Generate build system with CMake
-    echo "Generating build system in build directory..."
-    cd "$BUILD_DIR"
-    cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS="$SHARED_LIBS" -DBUILD_NOISEUTILS="$NOISEUTILS" -DBUILD_EXAMPLES="$EXAMPLES" "$SOURCE_DIR"
-    if [ $? -ne 0 ]; then
-        echo "ERROR: CMake generation failed. Please check the output above for details."
-        cd "$SOURCE_DIR"
-        exit 1
-    fi
-
     # Build Debug configuration
-    echo "Building Debug configuration..."
-    make -j$(nproc)
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Debug build failed. Please check the output above for details."
-        cd "$SOURCE_DIR"
-        exit 1
-    fi
-
-    # Generate Release configuration
-    echo "Generating Release configuration..."
-    cmake -DCMAKE_BUILD_TYPE=Release .
-    if [ $? -ne 0 ]; then
-        echo "ERROR: CMake generation for Release failed. Please check the output above for details."
-        cd "$SOURCE_DIR"
-        exit 1
-    fi
+    build_config "$BUILD_DIR_DEBUG" "Debug" "$SHARED_LIBS" "$NOISEUTILS" "$EXAMPLES"
 
     # Build Release configuration
-    echo "Building Release configuration..."
-    make -j$(nproc)
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Release build failed. Please check the output above for details."
-        cd "$SOURCE_DIR"
-        exit 1
-    fi
+    build_config "$BUILD_DIR_RELEASE" "Release" "$SHARED_LIBS" "$NOISEUTILS" "$EXAMPLES"
+
+    # Ensure the bin directory exists and copy all artifacts to a unified bin directory
+    echo "Copying build artifacts to $SOURCE_DIR/bin..."
+    mkdir -p "$SOURCE_DIR/bin/Debug"
+    mkdir -p "$SOURCE_DIR/bin/Release"
+
+    # Copy shared libraries and executables
+    cp -f "$BUILD_DIR_DEBUG/libnoise.so" "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
+    cp -f "$BUILD_DIR_DEBUG/noiseutils.so" "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
+    cp -f "$BUILD_DIR_DEBUG/"*.exe "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
+    cp -f "$BUILD_DIR_RELEASE/libnoise.so" "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
+    cp -f "$BUILD_DIR_RELEASE/noiseutils.so" "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
+    cp -f "$BUILD_DIR_RELEASE/"*.exe "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
 
     echo "Build completed successfully!"
-    cd "$SOURCE_DIR"
 }
 
 # Main menu loop
