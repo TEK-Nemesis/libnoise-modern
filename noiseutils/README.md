@@ -13,7 +13,7 @@ The `noiseutils` library is designed to work seamlessly with the `libnoise` core
 
 ## Integration with libnoise-modern
 
-The `noiseutils` library is a component of the `libnoise-modern` repository (version 1.1.0), which modernizes the original `libnoise` project. It depends on the `libnoise` core library, located in the `noise` folder, and is typically built alongside it using the repository’s build scripts. For the simplest build experience, use the Windows or Linux scripts in the main `libnoise-modern` folder, which handle the compilation of `libnoise`, `noiseutils`, and example applications.
+The `noiseutils` library is a component of the `libnoise-modern` repository, which modernizes the original `libnoise` project. It depends on the `libnoise` core library, located in the `noise` folder, and is typically built alongside it using the repository’s build scripts. For the simplest build experience, use the Windows or Linux scripts in the main `libnoise-modern` folder, which handle the compilation of `libnoise`, `noiseutils`, and example applications.
 
 ## Changes for C++17 Compatibility
 
