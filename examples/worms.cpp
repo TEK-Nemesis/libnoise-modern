@@ -70,6 +70,8 @@
 // - Removed extension check for GLEW_VERSION_3_0 since we now require OpenGL 3.2.
 // - Retained real-time animation of worms using basic OpenGL rendering.
 
+#include <GL/glew.h>
+
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -90,8 +92,6 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-
-#include <GL/glew.h>
 
 #include <noise/noise.h>
 #include <noise/mathconsts.h>
