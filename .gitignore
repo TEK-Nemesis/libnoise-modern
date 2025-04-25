@@ -28,6 +28,7 @@ Makefile
 
 # Temporary files
 *.bak
+*.bak*
 *.swp
 *.swo
 *~
