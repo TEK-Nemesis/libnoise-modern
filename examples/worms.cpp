@@ -89,6 +89,7 @@
 #include <math.h>
 #include <iostream>
 #include <fstream>
+#include <cstring>
 
 #include <GL/glew.h>
 
