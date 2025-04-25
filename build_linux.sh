@@ -146,13 +146,37 @@ build_project() {
     mkdir -p "$SOURCE_DIR/bin/Release"
 
     # Copy shared libraries and executables for Debug
-    cp -f "$BUILD_DIR_DEBUG/lib/Debug/libnoise.so" "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
-    cp -f "$BUILD_DIR_DEBUG/lib/Debug/libnoiseutils.so" "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
+    echo "Copying libnoise.so for Debug..."
+    if [ -f "$BUILD_DIR_DEBUG/lib/Debug/libnoise.so" ]; then
+        cp -f "$BUILD_DIR_DEBUG/lib/Debug/libnoise.so" "$SOURCE_DIR/bin/Debug/"
+        echo "Copied libnoise.so to $SOURCE_DIR/bin/Debug/"
+    else
+        echo "Warning: libnoise.so not found at $BUILD_DIR_DEBUG/lib/Debug/libnoise.so"
+    fi
+    echo "Copying libnoiseutils.so for Debug..."
+    if [ -f "$BUILD_DIR_DEBUG/lib/Debug/libnoiseutils.so" ]; then
+        cp -f "$BUILD_DIR_DEBUG/lib/Debug/libnoiseutils.so" "$SOURCE_DIR/bin/Debug/"
+        echo "Copied libnoiseutils.so to $SOURCE_DIR/bin/Debug/"
+    else
+        echo "Warning: libnoiseutils.so not found at $BUILD_DIR_DEBUG/lib/Debug/libnoiseutils.so"
+    fi
     cp -f "$BUILD_DIR_DEBUG/bin/Debug/"* "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
 
     # Copy shared libraries and executables for Release
-    cp -f "$BUILD_DIR_RELEASE/lib/Release/libnoise.so" "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
-    cp -f "$BUILD_DIR_RELEASE/lib/Release/libnoiseutils.so" "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
+    echo "Copying libnoise.so for Release..."
+    if [ -f "$BUILD_DIR_RELEASE/lib/Release/libnoise.so" ]; then
+        cp -f "$BUILD_DIR_RELEASE/lib/Release/libnoise.so" "$SOURCE_DIR/bin/Release/"
+        echo "Copied libnoise.so to $SOURCE_DIR/bin/Release/"
+    else
+        echo "Warning: libnoise.so not found at $BUILD_DIR_RELEASE/lib/Release/libnoise.so"
+    fi
+    echo "Copying libnoiseutils.so for Release..."
+    if [ -f "$BUILD_DIR_RELEASE/lib/Release/libnoiseutils.so" ]; then
+        cp -f "$BUILD_DIR_RELEASE/lib/Release/libnoiseutils.so" "$SOURCE_DIR/bin/Release/"
+        echo "Copied libnoiseutils.so to $SOURCE_DIR/bin/Release/"
+    else
+        echo "Warning: libnoiseutils.so not found at $BUILD_DIR_RELEASE/lib/Release/libnoiseutils.so"
+    fi
     cp -f "$BUILD_DIR_RELEASE/bin/Release/"* "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
 
     echo "Build completed successfully!"

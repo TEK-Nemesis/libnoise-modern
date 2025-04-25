@@ -26,10 +26,6 @@ foreach(CONFIG_TYPE Debug Release)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} "${CMAKE_BINARY_DIR}/lib/${CONFIG_TYPE}")
 endforeach()
 
-# Ensure bin directories exist
-file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin/Debug")
-file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin/Release")
-
 # Set CMake policy CMP0135 to NEW for FetchContent downloads
 if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
