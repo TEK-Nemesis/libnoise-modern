@@ -63,6 +63,7 @@
 // - Replaced gluBuild2DMipmaps with glGenerateMipmap/glGenerateMipmapEXT, with a fallback to GL_LINEAR filter if mipmaps are not supported.
 // - Added #include <cstring> for Linux compatibility.
 // - Modified InitGLX to request a compatibility profile context to support immediate mode on Linux.
+// - Added debug output for texture state to diagnose GL_INVALID_OPERATION error after glEnd.
 
 #include <GL/glew.h>
 
@@ -351,6 +352,11 @@ private:
 };
 
 void Worm::Draw() const {
+    // Verify texture binding before drawing.
+    GLint boundTexture;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
+    std::cout << "Bound texture ID before glBegin: " << boundTexture << std::endl;
+
     // The worm is drawn using a triangle strip.
     glBegin(GL_TRIANGLE_STRIP);
 
@@ -964,137 +970,152 @@ void RenderFrame()
 #endif
 }
 
-int main(int argc, char** argv)
-{
-  for (int i = 0; i < MAX_WORM_COUNT; i++) {
-    Vector2 pos;
-    pos.x = noise::ValueNoise3D(i + 1000, i + 2000, i + 3000);
-    pos.y = noise::ValueNoise3D(i + 1001, i + 2001, i + 3001);
-    g_wormArray[i].SetSeed(i);
-    g_wormArray[i].SetHeadScreenPos(pos);
-  }
+int main(int argc, char** argv) {
+    for (int i = 0; i < MAX_WORM_COUNT; i++) {
+        Vector2 pos;
+        pos.x = noise::ValueNoise3D(i + 1000, i + 2000, i + 3000);
+        pos.y = noise::ValueNoise3D(i + 1001, i + 2001, i + 3001);
+        g_wormArray[i].SetSeed(i);
+        g_wormArray[i].SetHeadScreenPos(pos);
+    }
 
-  // Initialize the window and OpenGL context.
+    // Initialize the window and OpenGL context.
 #ifdef _WIN32
-  if (!InitGLWindows()) {
+    if (!InitGLWindows()) {
+        CleanupGLWindows();
+        return 1;
+    }
+#else
+    if (!InitGLX()) {
+        CleanupGLX();
+        return 1;
+    }
+#endif
+
+    // Set the OpenGL texture mapping and blending parameters.
+    glClearColor(0.1f, 0.15f, 0.3f, 1.0f);
+    glShadeModel(GL_SMOOTH);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_TEXTURE_2D);
+
+    // Default to a simple texture filter; we'll switch to mipmapping if supported.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Build the texture map to use for the worms.
+    unsigned char pTexture[g_textureWidth * g_textureHeight * 4];
+    unsigned char* pSource = (unsigned char*)g_pTextureData;
+    for (int y = 0; y < g_textureHeight; y++) {
+        unsigned char* pDest = &(pTexture[g_textureWidth * 4 * y]);
+        for (int x = 0; x < g_textureWidth; x++) {
+            HEADER_PIXEL(pSource, pDest); // Decode the pixel value.
+            if (y == 0 || y == g_textureHeight - 1) {
+                pDest[3] = 0x40; // Transparency for top/bottom rows.
+            } else {
+                pDest[3] = 0xff;
+            }
+            pDest += 4;
+        }
+    }
+
+    // Generate and bind the texture.
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    std::cout << "Texture ID: " << textureID << std::endl;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLint)g_textureWidth, (GLint)g_textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pTexture);
+
+    // Check for OpenGL errors after texture loading.
+    GLenum glErr = glGetError();
+    if (glErr != GL_NO_ERROR) {
+        std::cerr << "OpenGL error after glTexImage2D: " << glErr << std::endl;
+    }
+
+    // Verify texture binding.
+    GLint boundTexture;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
+    std::cout << "Bound texture ID: " << boundTexture << " (should match Texture ID: " << textureID << ")" << std::endl;
+
+    // Use GLEW to check for glGenerateMipmap support and apply it if available.
+    bool mipmapsGenerated = false;
+    if (GLEW_VERSION_3_0) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        mipmapsGenerated = true;
+        std::cout << "Mipmaps generated with glGenerateMipmap." << std::endl;
+    } else if (GLEW_EXT_framebuffer_object) {
+#ifdef _WIN32
+        typedef void (APIENTRY *glGenerateMipmapEXTProc)(GLenum);
+        glGenerateMipmapEXTProc glGenerateMipmapEXT = (glGenerateMipmapEXTProc)wglGetProcAddress("glGenerateMipmapEXT");
+        if (glGenerateMipmapEXT) {
+            glGenerateMipmapEXT(GL_TEXTURE_2D);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            mipmapsGenerated = true;
+            std::cout << "Mipmaps generated with glGenerateMipmapEXT." << std::endl;
+        } else {
+            std::cerr << "glGenerateMipmapEXT is not available despite GLEW_EXT_framebuffer_object. Using GL_LINEAR filter." << std::endl;
+        }
+#else
+        typedef void (*glGenerateMipmapEXTProc)(GLenum);
+        glGenerateMipmapEXTProc glGenerateMipmapEXT = (glGenerateMipmapEXTProc)glXGetProcAddressARB((const GLubyte*)"glGenerateMipmapEXT");
+        if (glGenerateMipmapEXT) {
+            glGenerateMipmapEXT(GL_TEXTURE_2D);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            mipmapsGenerated = true;
+            std::cout << "Mipmaps generated with glGenerateMipmapEXT." << std::endl;
+        } else {
+            std::cerr << "glGenerateMipmapEXT is not available despite GLEW_EXT_framebuffer_object. Using GL_LINEAR filter." << std::endl;
+        }
+#endif
+    } else {
+        std::cout << "Neither glGenerateMipmap nor glGenerateMipmapEXT is supported. Using GL_LINEAR filter." << std::endl;
+    }
+
+    // Check for OpenGL errors after texture setup.
+    glErr = glGetError();
+    if (glErr != GL_NO_ERROR) {
+        std::cerr << "OpenGL error after texture setup: " << glErr << std::endl;
+    }
+
+    // Verify texture state.
+    GLint minFilter, magFilter;
+    glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, &minFilter);
+    glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, &magFilter);
+    std::cout << "Texture min filter: " << minFilter << " (GL_LINEAR=" << GL_LINEAR << ", GL_LINEAR_MIPMAP_LINEAR=" << GL_LINEAR_MIPMAP_LINEAR << ")" << std::endl;
+    std::cout << "Texture mag filter: " << magFilter << " (GL_LINEAR=" << GL_LINEAR << ")" << std::endl;
+
+    // Set initial viewport.
+    Reshape(WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    // Main loop.
+    while (running) {
+        RenderFrame();
+
+#ifdef _WIN32
+        MSG msg;
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) {
+                running = false;
+            }
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+#else
+        HandleXEvents();
+        XFlush(display);
+#endif
+    }
+
+    // Cleanup.
+#ifdef _WIN32
     CleanupGLWindows();
-    return 1;
-  }
 #else
-  if (!InitGLX()) {
     CleanupGLX();
-    return 1;
-  }
 #endif
 
-  // Set the OpenGL texture mapping and blending parameters.
-  glClearColor(0.1f, 0.15f, 0.3f, 1.0f);
-  glShadeModel(GL_SMOOTH);
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_CULL_FACE);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable(GL_TEXTURE_2D);
-
-  // Default to a simple texture filter; we'll switch to mipmapping if supported.
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  // Build the texture map to use for the worms.
-  unsigned char pTexture[g_textureWidth * g_textureHeight * 4];
-  unsigned char* pSource = (unsigned char*)g_pTextureData;
-  for (int y = 0; y < g_textureHeight; y++) {
-    unsigned char* pDest = &(pTexture[g_textureWidth * 4 * y]);
-    for (int x = 0; x < g_textureWidth; x++) {
-      HEADER_PIXEL(pSource, pDest); // Decode the pixel value.
-      if (y == 0 || y == g_textureHeight - 1) {
-        pDest[3] = 0x40; // Transparency for top/bottom rows.
-      } else {
-        pDest[3] = 0xff;
-      }
-      pDest += 4;
-    }
-  }
-
-  // Generate and bind the texture.
-  glGenTextures(1, &textureID);
-  glBindTexture(GL_TEXTURE_2D, textureID);
-  std::cout << "Texture ID: " << textureID << std::endl;
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLint)g_textureWidth, (GLint)g_textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pTexture);
-
-  // Check for OpenGL errors after texture loading.
-  GLenum glErr = glGetError();
-  if (glErr != GL_NO_ERROR) {
-    std::cerr << "OpenGL error after glTexImage2D: " << glErr << std::endl;
-  }
-
-  // Use GLEW to check for glGenerateMipmap support and apply it if available.
-  if (GLEW_VERSION_3_0) {
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    std::cout << "Mipmaps generated with glGenerateMipmap." << std::endl;
-  } else if (GLEW_EXT_framebuffer_object) {
-#ifdef _WIN32
-    typedef void (APIENTRY *glGenerateMipmapEXTProc)(GLenum);
-    glGenerateMipmapEXTProc glGenerateMipmapEXT = (glGenerateMipmapEXTProc)wglGetProcAddress("glGenerateMipmapEXT");
-    if (glGenerateMipmapEXT) {
-      glGenerateMipmapEXT(GL_TEXTURE_2D);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-      std::cout << "Mipmaps generated with glGenerateMipmapEXT." << std::endl;
-    } else {
-      std::cerr << "glGenerateMipmapEXT is not available despite GLEW_EXT_framebuffer_object. Using GL_LINEAR filter." << std::endl;
-    }
-#else
-    typedef void (*glGenerateMipmapEXTProc)(GLenum);
-    glGenerateMipmapEXTProc glGenerateMipmapEXT = (glGenerateMipmapEXTProc)glXGetProcAddressARB((const GLubyte*)"glGenerateMipmapEXT");
-    if (glGenerateMipmapEXT) {
-      glGenerateMipmapEXT(GL_TEXTURE_2D);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-      std::cout << "Mipmaps generated with glGenerateMipmapEXT." << std::endl;
-    } else {
-      std::cerr << "glGenerateMipmapEXT is not available despite GLEW_EXT_framebuffer_object. Using GL_LINEAR filter." << std::endl;
-    }
-#endif
-  } else {
-    std::cout << "Neither glGenerateMipmap nor glGenerateMipmapEXT is supported. Using GL_LINEAR filter." << std::endl;
-  }
-
-  // Check for OpenGL errors after texture setup.
-  glErr = glGetError();
-  if (glErr != GL_NO_ERROR) {
-    std::cerr << "OpenGL error after texture setup: " << glErr << std::endl;
-  }
-
-  // Set initial viewport.
-  Reshape(WINDOW_WIDTH, WINDOW_HEIGHT);
-
-  // Main loop.
-  while (running) {
-    RenderFrame();
-
-#ifdef _WIN32
-    MSG msg;
-    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-      if (msg.message == WM_QUIT) {
-        running = false;
-      }
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);
-    }
-#else
-    HandleXEvents();
-    XFlush(display);
-#endif
-  }
-
-  // Cleanup.
-#ifdef _WIN32
-  CleanupGLWindows();
-#else
-  CleanupGLX();
-#endif
-
-  return 0;
+    return 0;
 }
