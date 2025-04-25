@@ -603,6 +603,8 @@ void CleanupGLWindows() {
     }
 }
 
+// ... (previous code unchanged until InitGLX()) ...
+
 #else // Linux (X11/GLX)
 bool InitGLX() {
     display = XOpenDisplay(NULL);
@@ -613,12 +615,18 @@ bool InitGLX() {
 
     int screen = DefaultScreen(display);
 
-    // Check for GLX extensions to create a modern OpenGL context.
+    // Check for GLX version.
     int glxMajor, glxMinor;
-    if (!glXQueryVersion(display, &glxMajor, &glxMinor) || (glxMajor < 1) || (glxMajor == 1 && glxMinor < 3)) {
-        std::cerr << "GLX 1.3 or higher is required." << std::endl;
+    if (!glXQueryVersion(display, &glxMajor, &glxMinor)) {
+        std::cerr << "Failed to query GLX version." << std::endl;
         return false;
     }
+    std::cout << "GLX version: " << glxMajor << "." << glxMinor << std::endl;
+
+    // Check for GLX extensions.
+    const char* glxExtensions = glXQueryExtensionsString(display, screen);
+    bool hasContextAttribsARB = (strstr(glxExtensions, "GLX_ARB_create_context") != nullptr);
+    std::cout << "GLX_ARB_create_context supported: " << (hasContextAttribsARB ? "yes" : "no") << std::endl;
 
     // Define attributes for a modern OpenGL context (3.2 core profile).
     int glxAttribs[] = {
@@ -635,10 +643,27 @@ bool InitGLX() {
     };
 
     // Choose a visual with the desired attributes.
-    XVisualInfo* vi = glXChooseVisual(display, screen, glxAttribs);
+    XVisualInfo* vi = nullptr;
+    if (hasContextAttribsARB) {
+        vi = glXChooseVisual(display, screen, glxAttribs);
+    }
     if (!vi) {
-        std::cerr << "Failed to choose visual with OpenGL 3.2 support." << std::endl;
-        return false;
+        std::cerr << "Failed to choose visual with OpenGL 3.2 support. Falling back to default visual." << std::endl;
+        // Fallback to a simpler visual.
+        int fallbackAttribs[] = {
+          GLX_RGBA,
+          GLX_DOUBLEBUFFER,
+          GLX_RED_SIZE, 8,
+          GLX_GREEN_SIZE, 8,
+          GLX_BLUE_SIZE, 8,
+          GLX_DEPTH_SIZE, 16,
+          None
+        };
+        vi = glXChooseVisual(display, screen, fallbackAttribs);
+        if (!vi) {
+            std::cerr << "Failed to choose fallback visual." << std::endl;
+            return false;
+        }
     }
 
     // Create a colormap and window.
@@ -660,32 +685,47 @@ bool InitGLX() {
 
     // Load the GLX extension for creating a modern context.
     typedef GLXContext(*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
-    glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
-    if (!glXCreateContextAttribsARB) {
-        std::cerr << "Failed to load glXCreateContextAttribsARB." << std::endl;
-        return false;
+    glXCreateContextAttribsARBProc glXCreateContextAttribsARB = nullptr;
+    if (hasContextAttribsARB) {
+        glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
+        if (!glXCreateContextAttribsARB) {
+            std::cerr << "Failed to load glXCreateContextAttribsARB." << std::endl;
+            hasContextAttribsARB = false;
+        }
     }
 
-    // Create an OpenGL 3.2 core profile context.
-    int contextAttribs[] = {
-      GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-      GLX_CONTEXT_MINOR_VERSION_ARB, 2,
-      GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-      None
-    };
+    // Create an OpenGL context.
+    if (hasContextAttribsARB) {
+        // Try to create an OpenGL 3.2 core profile context.
+        int contextAttribs[] = {
+          GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+          GLX_CONTEXT_MINOR_VERSION_ARB, 2,
+          GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+          None
+        };
 
-    // Choose an FBConfig that matches the visual.
-    int fbCount;
-    GLXFBConfig* fbc = glXChooseFBConfig(display, screen, glxAttribs, &fbCount);
-    if (!fbc) {
-        std::cerr << "Failed to choose FBConfig for OpenGL 3.2 context." << std::endl;
-        return false;
+        // Choose an FBConfig that matches the visual.
+        int fbCount;
+        GLXFBConfig* fbc = glXChooseFBConfig(display, screen, glxAttribs, &fbCount);
+        if (!fbc) {
+            std::cerr << "Failed to choose FBConfig for OpenGL 3.2 context. Falling back to default context." << std::endl;
+            glContext = glXCreateContext(display, vi, NULL, GL_TRUE);
+        } else {
+            glContext = glXCreateContextAttribsARB(display, fbc[0], NULL, GL_TRUE, contextAttribs);
+            if (!glContext) {
+                std::cerr << "Failed to create OpenGL 3.2 context. Falling back to default context." << std::endl;
+                glContext = glXCreateContext(display, vi, NULL, GL_TRUE);
+            }
+            XFree(fbc);
+        }
+    } else {
+        // Fallback to a default context.
+        std::cerr << "GLX_ARB_create_context not available. Falling back to default context." << std::endl;
+        glContext = glXCreateContext(display, vi, NULL, GL_TRUE);
     }
 
-    glContext = glXCreateContextAttribsARB(display, fbc[0], NULL, GL_TRUE, contextAttribs);
-    XFree(fbc);
     if (!glContext) {
-        std::cerr << "Failed to create GLX context with OpenGL 3.2." << std::endl;
+        std::cerr << "Failed to create GLX context." << std::endl;
         return false;
     }
 
@@ -702,8 +742,23 @@ bool InitGLX() {
         return false;
     }
 
+    // Print OpenGL version for debugging.
+    const GLubyte* glVersion = glGetString(GL_VERSION);
+    std::cout << "OpenGL version: " << (glVersion ? (const char*)glVersion : "unknown") << std::endl;
+
+    // Check for glGenerateMipmap support.
+    if (glXGetProcAddressARB((const GLubyte*)"glGenerateMipmap")) {
+        std::cout << "glGenerateMipmap is supported." << std::endl;
+    } else if (glXGetProcAddressARB((const GLubyte*)"glGenerateMipmapEXT")) {
+        std::cout << "glGenerateMipmapEXT is supported." << std::endl;
+    } else {
+        std::cerr << "Neither glGenerateMipmap nor glGenerateMipmapEXT is supported. Mipmaps will not be generated." << std::endl;
+    }
+
     return true;
 }
+
+// ... (rest of the file unchanged) ...
 
 void CleanupGLX() {
     if (glContext) {
