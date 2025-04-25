@@ -79,7 +79,7 @@ if(BUILD_EXAMPLES)
     )
 
     # Set GLEW build options
-    set(glew-cmake_BUILD_SHARED OFF CACHE BOOL "Build GLEW as a static library" FORCE)
+    set(glew-cmake_BUILD_SHARED OFF CACHE BOOL "Build GLEW as a shared library" FORCE)
     set(glew-cmake_BUILD_STATIC ON CACHE BOOL "Build GLEW static library" FORCE)
     set(glew-cmake_BUILD_UTILS OFF CACHE BOOL "Disable GLEW utils (glewinfo, visualinfo)" FORCE)
 
