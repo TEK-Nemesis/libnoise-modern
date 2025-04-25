@@ -35,6 +35,11 @@ if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
 
+# Suppress CMP0075 warning
+if(POLICY CMP0075)
+    cmake_policy(SET CMP0075 NEW)
+endif()
+
 # Options for build configuration
 option(BUILD_SHARED_LIBS "Build shared libraries instead of static" OFF)
 option(BUILD_NOISEUTILS "Build the noiseutils library" ON)
