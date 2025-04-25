@@ -64,6 +64,8 @@
 // - Added #include <cstring> for Linux compatibility.
 // - Modified InitGLX to request a compatibility profile context to support immediate mode on Linux.
 // - Added debug output for texture state to diagnose GL_INVALID_OPERATION error after glEnd.
+// - Added explicit texture rebinding in Worm::Draw to fix GL_INVALID_OPERATION error.
+// - Normalized texture coordinates in Worm::Draw to prevent GL_INVALID_OPERATION on Linux.
 
 #include <GL/glew.h>
 
@@ -352,6 +354,12 @@ private:
 };
 
 void Worm::Draw() const {
+    // Clear any existing OpenGL errors.
+    while (glGetError() != GL_NO_ERROR) {}
+
+    // Explicitly rebind the texture to ensure correct state.
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
     // Verify texture binding before drawing.
     GLint boundTexture;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
@@ -410,10 +418,12 @@ void Worm::Draw() const {
         GLdouble x1 = (GLdouble)(curSegmentScreenPos.x - curNormalPos.x);
         GLdouble y1 = (GLdouble)(curSegmentScreenPos.y - curNormalPos.y);
 
-        // Draw the segment using OpenGL.
-        glTexCoord2f((GLfloat)curSegment, 0.0f);
+        // Normalize texture coordinates to repeat the texture across the worm.
+        // Map curSegment (0 to m_segmentCount-1) to a 0-1 range, scaled to repeat the texture.
+        GLfloat texCoordS = (GLfloat)curSegment / (GLfloat)m_segmentCount * 10.0f; // Repeat the texture 10 times along the worm.
+        glTexCoord2f(texCoordS, 0.0f);
         glVertex2d(x0, y0);
-        glTexCoord2f((GLfloat)curSegment, 1.0f);
+        glTexCoord2f(texCoordS, 1.0f);
         glVertex2d(x1, y1);
 
         // Prepare the next segment.
