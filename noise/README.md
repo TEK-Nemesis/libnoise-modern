@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `noise` folder contains the core `libnoise` library, the heart of the `libnoise-modern` repository (version 1.1.0). Originally developed by **Jason Bevins**, `libnoise` is a powerful library for generating coherent noise, widely used for procedural content creation in games, simulations, and visualizations. This modernized version, updated by **TEK Nemesis**, leverages C++17 features to enhance performance, safety, and cross-platform compatibility while preserving the original functionality.
+The `noise` folder contains the core `libnoise` library, the heart of the `libnoise-modern` repository. Originally developed by **Jason Bevins**, `libnoise` is a powerful library for generating coherent noise, widely used for procedural content creation in games, simulations, and visualizations. This modernized version, updated by **TEK Nemesis**, leverages C++17 features to enhance performance, safety, and cross-platform compatibility while preserving the original functionality.
 
 For detailed information on noise modules, their usage, and mathematical foundations, refer to the original `libnoise` documentation at libnoise.sourceforge.net. The main `libnoise-modern` README (`../README.md`) provides a comprehensive overview of the repository, including modernization details and features.
 
