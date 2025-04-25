@@ -72,7 +72,7 @@ The `noiseutils` library was modernized by **TEK Nemesis** and **Grok** on April
 
 ### Preservation of Original Intent
 
-- All changes maintain Jason Bevins’ original functionality, verified by comparing implementations with the original `noiseutils-orig.cpp`.
+- All changes maintain Jason Bevins’ original functionality.
 - Fixed bugs (e.g., `memcpy` size in `Image::CopyImage`) while ensuring behavioral equivalence.
 - Ensured `Image` class behavior aligns with `NoiseMap` class, as intended in the original design.
 
@@ -139,7 +139,7 @@ Ensure code adheres to C++17 standards and includes tests or examples demonstrat
 
 ## License
 
-`noiseutils` is licensed under the GNU Lesser General Public License (LGPL) version 2.1 or later, consistent with `libnoise`. See `COPYING.txt` in the `libnoise-modern` root for details.
+`noiseutils` is licensed under the GNU Lesser General Public License (LGPL) version 2.1 or later, consistent with `libnoise`. 
 
 ## Contact
 
