@@ -1,4 +1,4 @@
-# libnoise-modern (Version 1.1.0)
+# libnoise-modern
 
 Welcome to **libnoise-modern**, a modernized fork of the classic `libnoise` library, updated to leverage C++17 features and improve cross-platform compatibility. This repository maintains the core functionality of `libnoise` for generating coherent noise, while introducing significant enhancements for performance, usability, and maintainability. The library is ideal for procedural content generation in games, simulations, and visualizations, supporting applications like terrain generation, texture creation, and more.
 
@@ -53,21 +53,21 @@ This section guides you through downloading or cloning the `libnoise-modern` rep
 
 - **Download the Release**:
   - Go to [github.com/TEK-Nemesis/libnoise-modern/releases](https://github.com/TEK-Nemesis/libnoise-modern/releases).
-  - Find the v1.1.0 release and download the source code (`libnoise-modern-1.1.0.zip` or `libnoise-modern-1.1.0.tar.gz`).
+  - Find the most recent release and download the source code (e.g. `libnoise-modern-1.1.1.zip`).
   - Extract the archive to a working directory (e.g., `~/projects` on Linux, `C:\Projects` on Windows):
     - **Linux**:
       ```bash
       mkdir -p ~/projects
-      mv ~/Downloads/libnoise-modern-1.1.0.zip ~/projects/
+      mv ~/Downloads/libnoise-modern-1.1.1.zip ~/projects/
       cd ~/projects
-      unzip libnoise-modern-1.1.0.zip
-      cd libnoise-modern-1.1.0
+      unzip libnoise-modern-1.1.1.zip
+      cd libnoise-modern-1.1.1
       ```
     - **Windows**:
-      - Use File Explorer to extract `libnoise-modern-1.1.0.zip` to `C:\Projects`.
+      - Use File Explorer to extract `libnoise-modern-1.1.1.zip` to `C:\Projects`.
       - Open Command Prompt and navigate to the folder:
         ```cmd
-        cd C:\Projects\libnoise-modern-1.1.0
+        cd C:\Projects\libnoise-modern-1.1.1
         ```
 - **Clone the Repository** (Alternative):
   - Ensure Git is installed (`git --version`).
@@ -75,7 +75,7 @@ This section guides you through downloading or cloning the `libnoise-modern` rep
     ```bash
     git clone https://github.com/TEK-Nemesis/libnoise-modern.git
     cd libnoise-modern
-    git checkout v1.1.0
+    git checkout v1.1.1
     ```
 
 ### Step 2: Prepare Your Environment
@@ -136,8 +136,8 @@ This section guides you through downloading or cloning the `libnoise-modern` rep
 
 ### Step 3: Verify Setup
 - Ensure you’re in the `libnoise-modern` root directory:
-  - Linux: `~/projects/libnoise-modern-1.1.0`
-  - Windows: `C:\Projects\libnoise-modern-1.1.0`
+  - Linux: `~/projects/libnoise-modern-1.1.1`
+  - Windows: `C:\Projects\libnoise-modern-1.1.1`
 - Confirm the build scripts are present:
   - Linux:
     ```bash
@@ -214,10 +214,6 @@ Please ensure your code adheres to C++17 standards and includes appropriate test
 ## License
 
 `libnoise-modern` is licensed under the GNU Lesser General Public License (LGPL) version 2.1 or later, consistent with the original `libnoise` library. See `COPYING.txt` for details.
-
-## Version
-
-This is **version 1.1.0** of `libnoise-modern`. Once testing is complete, a release will be created on GitHub at github.com/TEK-Nemesis/libnoise-modern.
 
 ## Contact
 
