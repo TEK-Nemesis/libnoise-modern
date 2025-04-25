@@ -18,6 +18,14 @@
 # the project in an IDE, you can generate project files for your preferred
 # IDE using CMake (e.g., cmake -G "CodeBlocks - Unix Makefiles").
 #
+# Created by Grok on April 25, 2025, as a Linux equivalent to build_vs2022.bat
+# for cross-platform compatibility.
+# Updated by Grok on April 28, 2025:
+# - Added cleanup of build directories in subdirectories (noise, examples, noiseutils).
+# Updated by Grok on April 29, 2025:
+# - Separated Debug and Release builds into distinct build directories (build/Debug, build/Release).
+# Updated by Grok on April 30, 2025:
+# - Fixed copying of shared libraries and executables by using correct source paths.
 
 # Function to check if a command exists
 command_exists() {
@@ -137,13 +145,15 @@ build_project() {
     mkdir -p "$SOURCE_DIR/bin/Debug"
     mkdir -p "$SOURCE_DIR/bin/Release"
 
-    # Copy shared libraries and executables
-    cp -f "$BUILD_DIR_DEBUG/libnoise.so" "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
-    cp -f "$BUILD_DIR_DEBUG/noiseutils.so" "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
-    cp -f "$BUILD_DIR_DEBUG/"*.exe "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
-    cp -f "$BUILD_DIR_RELEASE/libnoise.so" "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
-    cp -f "$BUILD_DIR_RELEASE/noiseutils.so" "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
-    cp -f "$BUILD_DIR_RELEASE/"*.exe "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
+    # Copy shared libraries and executables for Debug
+    cp -f "$BUILD_DIR_DEBUG/lib/Debug/libnoise.so" "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
+    cp -f "$BUILD_DIR_DEBUG/lib/Debug/libnoiseutils.so" "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
+    cp -f "$BUILD_DIR_DEBUG/bin/Debug/"* "$SOURCE_DIR/bin/Debug/" 2>/dev/null || true
+
+    # Copy shared libraries and executables for Release
+    cp -f "$BUILD_DIR_RELEASE/lib/Release/libnoise.so" "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
+    cp -f "$BUILD_DIR_RELEASE/lib/Release/libnoiseutils.so" "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
+    cp -f "$BUILD_DIR_RELEASE/bin/Release/"* "$SOURCE_DIR/bin/Release/" 2>/dev/null || true
 
     echo "Build completed successfully!"
 }
