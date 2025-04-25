@@ -4,7 +4,7 @@
 
 The `examples` folder contains sample applications demonstrating the usage of the `libnoise` library for procedural content generation. These examples include generating terrains (`worms`, `complexplanet`) and textures (`texturejade`, `texturegranite`, `texturewood`, `texturesky`, `textureslime`), showcasing practical applications of noise modules in games, simulations, and visualizations.
 
-These examples are modernized versions of the originals created by **Jason Bevins** in 2005, updated by **TEK Nemesis** for C++17 compliance and cross-platform compatibility as part of `libnoise-modern` (version 1.1.0). The original versions and their detailed descriptions are available at [libnoise.sourceforge.net/examples/index.html](https://libnoise.sourceforge.net/examples/index.html).
+These examples are modernized versions of the originals created by **Jason Bevins** in 2005, updated by **TEK Nemesis** for C++17 compliance and cross-platform compatibility as part of `libnoise-modern`. The original versions and their detailed descriptions are available at [libnoise.sourceforge.net/examples/index.html](https://libnoise.sourceforge.net/examples/index.html).
 
 ## Building and Running
 
