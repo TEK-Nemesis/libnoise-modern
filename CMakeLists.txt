@@ -26,6 +26,10 @@ foreach(CONFIG_TYPE Debug Release)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} "${CMAKE_BINARY_DIR}/lib/${CONFIG_TYPE}")
 endforeach()
 
+# Ensure bin directories exist
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin/Debug")
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin/Release")
+
 # Set CMake policy CMP0135 to NEW for FetchContent downloads
 if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
@@ -118,42 +122,5 @@ if(BUILD_EXAMPLES)
 
         # Link GLEW and platform-specific libraries for all examples
         target_link_libraries(${EXAMPLE_NAME} PRIVATE libglew_static ${PLATFORM_LIBRARIES})
-
-        # If building shared libraries, copy shared libraries to the executable's output directory
-        if(BUILD_SHARED_LIBS)
-            # Determine the configuration-specific output directory
-            if(CMAKE_GENERATOR MATCHES "Visual Studio" OR CMAKE_GENERATOR MATCHES "Ninja Multi-Config")
-                set(EXECUTABLE_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>")
-                set(SHARED_LIB_SOURCE_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>")
-            else()
-                set(EXECUTABLE_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-                set(SHARED_LIB_SOURCE_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-            endif()
-
-            # Copy libnoise and noiseutils shared libraries
-            if(WIN32)
-                # Windows: Copy .dll files
-                add_custom_command(TARGET ${EXAMPLE_NAME} POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${SHARED_LIB_SOURCE_DIR}/libnoise.dll"
-                        "${EXECUTABLE_OUTPUT_DIR}"
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${SHARED_LIB_SOURCE_DIR}/noiseutils.dll"
-                        "${EXECUTABLE_OUTPUT_DIR}"
-                    COMMENT "Copying libnoise.dll and noiseutils.dll to ${EXECUTABLE_OUTPUT_DIR}"
-                )
-            else()
-                # Linux: Copy .so files
-                add_custom_command(TARGET ${EXAMPLE_NAME} POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${SHARED_LIB_SOURCE_DIR}/libnoise.so"
-                        "${EXECUTABLE_OUTPUT_DIR}"
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${SHARED_LIB_SOURCE_DIR}/libnoiseutils.so"
-                        "${EXECUTABLE_OUTPUT_DIR}"
-                    COMMENT "Copying libnoise.so and noiseutils.so to ${EXECUTABLE_OUTPUT_DIR}"
-                )
-            endif()
-        endif()
     endforeach()
 endif()
