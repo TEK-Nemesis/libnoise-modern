@@ -57,7 +57,7 @@
 // The developer's email is jlbezigvins@gmzigail.com (for great email, take
 // off every 'zig').
 //
-// Updated for C++17 compatibility by TEK Nemesis and Grok on April 24, 2025:
+// Updated for C++17 compatibility by TEK Nemesis and Grok on May 2, 2025:
 // - Replaced GLUT with custom windowing (Win32 on Windows, X11/GLX on Linux).
 // - Replaced OpenGL 1.1 with GLEW for modern OpenGL function loading.
 // - Replaced gluBuild2DMipmaps with glGenerateMipmap/glGenerateMipmapEXT, with a fallback to GL_LINEAR filter if mipmaps are not supported.
