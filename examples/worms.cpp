@@ -57,11 +57,12 @@
 // The developer's email is jlbezigvins@gmzigail.com (for great email, take
 // off every 'zig').
 //
-// Updated for C++17 compatibility by TEK Nemesis and Grok on May 2, 2025:
+// Updated for C++17 compatibility by TEK Nemesis and Grok on April 24, 2025:
 // - Replaced GLUT with custom windowing (Win32 on Windows, X11/GLX on Linux).
 // - Replaced OpenGL 1.1 with GLEW for modern OpenGL function loading.
 // - Replaced gluBuild2DMipmaps with glGenerateMipmap/glGenerateMipmapEXT, with a fallback to GL_LINEAR filter if mipmaps are not supported.
 // - Added #include <cstring> for Linux compatibility.
+// - Modified InitGLX to request a compatibility profile context to support immediate mode on Linux.
 
 #include <GL/glew.h>
 
@@ -349,75 +350,80 @@ private:
   double m_twistiness;
 };
 
-void Worm::Draw() const
-{
-  // The worm is drawn using a triangle strip.
-  glBegin(GL_TRIANGLE_STRIP);
+void Worm::Draw() const {
+    // The worm is drawn using a triangle strip.
+    glBegin(GL_TRIANGLE_STRIP);
 
-  // Position of the current segment being drawn, in screen space.
-  Vector2 curSegmentScreenPos = m_headScreenPos;
+    // Check for OpenGL errors after glBegin.
+    GLenum glErr = glGetError();
+    if (glErr != GL_NO_ERROR) {
+        std::cerr << "OpenGL error after glBegin: " << glErr << std::endl;
+    }
 
-  // The width of the worm's body at the current segment being drawn.
-  Vector2 offsetPos;
+    // Position of the current segment being drawn, in screen space.
+    Vector2 curSegmentScreenPos = m_headScreenPos;
 
-  // Coordinates of the input value, in "noise space", that specifies the
-  // current segment's angle.
-  Vector3 curNoisePos;
+    // The width of the worm's body at the current segment being drawn.
+    Vector2 offsetPos;
 
-  // The vector that is perpendicular to the center of the segment; used to
-  // determine the position of the edges of the worm's body.
-  Vector2 curNormalPos;
+    // Coordinates of the input value, in "noise space", that specifies the
+    // current segment's angle.
+    Vector3 curNoisePos;
 
-  for (int curSegment = 0; curSegment < m_segmentCount; curSegment++) {
-    // Get the Perlin-noise value for this segment based on the segment
-    // number.  This value is interpreted as an angle, in radians.
-    curNoisePos.x = m_headNoisePos.x + (curSegment * m_twistiness);
-    curNoisePos.y = m_headNoisePos.y;
-    curNoisePos.z = m_headNoisePos.z;
-    double noiseValue = m_noise.GetValue(
-      curNoisePos.x,
-      curNoisePos.y,
-      curNoisePos.z);
+    // The vector that is perpendicular to the center of the segment; used to
+    // determine the position of the edges of the worm's body.
+    Vector2 curNormalPos;
 
-    // Determine the width of the worm's body at this segment.
-    double taperAmount = GetTaperAmount(curSegment) * m_thickness;
+    for (int curSegment = 0; curSegment < m_segmentCount; curSegment++) {
+        // Get the Perlin-noise value for this segment based on the segment
+        // number.  This value is interpreted as an angle, in radians.
+        curNoisePos.x = m_headNoisePos.x + (curSegment * m_twistiness);
+        curNoisePos.y = m_headNoisePos.y;
+        curNoisePos.z = m_headNoisePos.z;
+        double noiseValue = m_noise.GetValue(
+            curNoisePos.x,
+            curNoisePos.y,
+            curNoisePos.z);
 
-    // Determine the offset of this segment from the previous segment by
-    // converting the angle from the Perlin-noise module to an (x, y)
-    // coordinate.
-    offsetPos.x = cos(noiseValue * 2.0 * noise::PI);
-    offsetPos.y = sin(noiseValue * 2.0 * noise::PI);
+        // Determine the width of the worm's body at this segment.
+        double taperAmount = GetTaperAmount(curSegment) * m_thickness;
 
-    // Determine the coordinates of each corner of the segment.
-    curNormalPos.x = (-offsetPos.y) * taperAmount;
-    curNormalPos.y = ( offsetPos.x) * taperAmount;
-    offsetPos.x *= m_segmentLength;
-    offsetPos.y *= m_segmentLength;
-    GLdouble x0 = (GLdouble)(curSegmentScreenPos.x + curNormalPos.x);
-    GLdouble y0 = (GLdouble)(curSegmentScreenPos.y + curNormalPos.y);
-    GLdouble x1 = (GLdouble)(curSegmentScreenPos.x - curNormalPos.x);
-    GLdouble y1 = (GLdouble)(curSegmentScreenPos.y - curNormalPos.y);
+        // Determine the offset of this segment from the previous segment by
+        // converting the angle from the Perlin-noise module to an (x, y)
+        // coordinate.
+        offsetPos.x = cos(noiseValue * 2.0 * noise::PI);
+        offsetPos.y = sin(noiseValue * 2.0 * noise::PI);
 
-    // Draw the segment using OpenGL.
-    glTexCoord2f((GLfloat)curSegment, 0.0f);
-    glVertex2d(x0, y0);
-    glTexCoord2f((GLfloat)curSegment, 1.0f);
-    glVertex2d(x1, y1);
+        // Determine the coordinates of each corner of the segment.
+        curNormalPos.x = (-offsetPos.y) * taperAmount;
+        curNormalPos.y = (offsetPos.x) * taperAmount;
+        offsetPos.x *= m_segmentLength;
+        offsetPos.y *= m_segmentLength;
+        GLdouble x0 = (GLdouble)(curSegmentScreenPos.x + curNormalPos.x);
+        GLdouble y0 = (GLdouble)(curSegmentScreenPos.y + curNormalPos.y);
+        GLdouble x1 = (GLdouble)(curSegmentScreenPos.x - curNormalPos.x);
+        GLdouble y1 = (GLdouble)(curSegmentScreenPos.y - curNormalPos.y);
 
-    // Prepare the next segment.
-    ++curSegment;
-    curSegmentScreenPos.x += offsetPos.x;
-    curSegmentScreenPos.y += offsetPos.y;
-  }
+        // Draw the segment using OpenGL.
+        glTexCoord2f((GLfloat)curSegment, 0.0f);
+        glVertex2d(x0, y0);
+        glTexCoord2f((GLfloat)curSegment, 1.0f);
+        glVertex2d(x1, y1);
 
-  // Finish drawing the worm.
-  glEnd();
+        // Prepare the next segment.
+        ++curSegment;
+        curSegmentScreenPos.x += offsetPos.x;
+        curSegmentScreenPos.y += offsetPos.y;
+    }
 
-  // Check for OpenGL errors after drawing.
-  GLenum glErr = glGetError();
-  if (glErr != GL_NO_ERROR) {
-    std::cerr << "OpenGL error after drawing worm: " << glErr << std::endl;
-  }
+    // Finish drawing the worm.
+    glEnd();
+
+    // Check for OpenGL errors after glEnd.
+    glErr = glGetError();
+    if (glErr != GL_NO_ERROR) {
+        std::cerr << "OpenGL error after glEnd: " << glErr << std::endl;
+    }
 }
 
 void Worm::Update()
@@ -643,164 +649,163 @@ void CleanupGLWindows()
 }
 
 #else // Linux (X11/GLX)
-bool InitGLX()
-{
-  display = XOpenDisplay(NULL);
-  if (!display) {
-    std::cerr << "Failed to open X display." << std::endl;
-    return false;
-  }
+bool InitGLX() {
+    display = XOpenDisplay(NULL);
+    if (!display) {
+        std::cerr << "Failed to open X display." << std::endl;
+        return false;
+    }
 
-  int screen = DefaultScreen(display);
+    int screen = DefaultScreen(display);
 
-  // Check for GLX version.
-  int glxMajor, glxMinor;
-  if (!glXQueryVersion(display, &glxMajor, &glxMinor)) {
-    std::cerr << "Failed to query GLX version." << std::endl;
-    return false;
-  }
-  std::cout << "GLX version: " << glxMajor << "." << glxMinor << std::endl;
+    // Check for GLX version.
+    int glxMajor, glxMinor;
+    if (!glXQueryVersion(display, &glxMajor, &glxMinor)) {
+        std::cerr << "Failed to query GLX version." << std::endl;
+        return false;
+    }
+    std::cout << "GLX version: " << glxMajor << "." << glxMinor << std::endl;
 
-  // Check for GLX extensions.
-  const char* glxExtensions = glXQueryExtensionsString(display, screen);
-  bool hasContextAttribsARB = (strstr(glxExtensions, "GLX_ARB_create_context") != nullptr);
-  std::cout << "GLX_ARB_create_context supported: " << (hasContextAttribsARB ? "yes" : "no") << std::endl;
+    // Check for GLX extensions.
+    const char* glxExtensions = glXQueryExtensionsString(display, screen);
+    bool hasContextAttribsARB = (strstr(glxExtensions, "GLX_ARB_create_context") != nullptr);
+    std::cout << "GLX_ARB_create_context supported: " << (hasContextAttribsARB ? "yes" : "no") << std::endl;
 
-  // Define attributes for a modern OpenGL context (3.2 core profile).
-  int glxAttribs[] = {
-    GLX_RGBA,
-    GLX_DOUBLEBUFFER,
-    GLX_RED_SIZE, 8,
-    GLX_GREEN_SIZE, 8,
-    GLX_BLUE_SIZE, 8,
-    GLX_DEPTH_SIZE, 16,
-    GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-    GLX_CONTEXT_MINOR_VERSION_ARB, 2,
-    GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-    None
-  };
-
-  // Choose a visual with the desired attributes.
-  XVisualInfo* vi = nullptr;
-  if (hasContextAttribsARB) {
-    vi = glXChooseVisual(display, screen, glxAttribs);
-  }
-  if (!vi) {
-    std::cerr << "Failed to choose visual with OpenGL 3.2 support. Falling back to default visual." << std::endl;
-    // Fallback to a simpler visual.
-    int fallbackAttribs[] = {
+    // Define attributes for a modern OpenGL context (try compatibility profile first).
+    int glxAttribs[] = {
       GLX_RGBA,
       GLX_DOUBLEBUFFER,
       GLX_RED_SIZE, 8,
       GLX_GREEN_SIZE, 8,
       GLX_BLUE_SIZE, 8,
       GLX_DEPTH_SIZE, 16,
-      None
-    };
-    vi = glXChooseVisual(display, screen, fallbackAttribs);
-    if (!vi) {
-      std::cerr << "Failed to choose fallback visual." << std::endl;
-      return false;
-    }
-  }
-
-  // Create a colormap and window.
-  Colormap cmap = XCreateColormap(display, RootWindow(display, screen), vi->visual, AllocNone);
-  XSetWindowAttributes swa;
-  swa.colormap = cmap;
-  swa.event_mask = ExposureMask | KeyPressMask;
-
-  window = XCreateWindow(display, RootWindow(display, screen), 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0,
-                         vi->depth, InputOutput, vi->visual,
-                         CWColormap | CWEventMask, &swa);
-  if (!window) {
-    std::cerr << "Failed to create window." << std::endl;
-    return false;
-  }
-
-  XMapWindow(display, window);
-  XStoreName(display, window, "libnoise demonstration - Perlin worms");
-
-  // Load the GLX extension for creating a modern context.
-  typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
-  glXCreateContextAttribsARBProc glXCreateContextAttribsARB = nullptr;
-  if (hasContextAttribsARB) {
-    glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
-    if (!glXCreateContextAttribsARB) {
-      std::cerr << "Failed to load glXCreateContextAttribsARB." << std::endl;
-      hasContextAttribsARB = false;
-    }
-  }
-
-  // Create an OpenGL context.
-  if (hasContextAttribsARB) {
-    // Try to create an OpenGL 3.2 core profile context.
-    int contextAttribs[] = {
       GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
       GLX_CONTEXT_MINOR_VERSION_ARB, 2,
-      GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+      GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB, // Request compatibility profile
       None
     };
 
-    // Choose an FBConfig that matches the visual.
-    int fbCount;
-    GLXFBConfig* fbc = glXChooseFBConfig(display, screen, glxAttribs, &fbCount);
-    if (!fbc) {
-      std::cerr << "Failed to choose FBConfig for OpenGL 3.2 context. Falling back to default context." << std::endl;
-      glContext = glXCreateContext(display, vi, NULL, GL_TRUE);
-    } else {
-      glContext = glXCreateContextAttribsARB(display, fbc[0], NULL, GL_TRUE, contextAttribs);
-      if (!glContext) {
-        std::cerr << "Failed to create OpenGL 3.2 context. Falling back to default context." << std::endl;
-        glContext = glXCreateContext(display, vi, NULL, GL_TRUE);
-      }
-      XFree(fbc);
+    // Choose a visual with the desired attributes.
+    XVisualInfo* vi = nullptr;
+    if (hasContextAttribsARB) {
+        vi = glXChooseVisual(display, screen, glxAttribs);
     }
-  } else {
-    // Fallback to a default context.
-    std::cerr << "GLX_ARB_create_context not available. Falling back to default context." << std::endl;
-    glContext = glXCreateContext(display, vi, NULL, GL_TRUE);
-  }
+    if (!vi) {
+        std::cerr << "Failed to choose visual with OpenGL 3.2 compatibility profile. Falling back to default visual." << std::endl;
+        // Fallback to a simpler visual.
+        int fallbackAttribs[] = {
+          GLX_RGBA,
+          GLX_DOUBLEBUFFER,
+          GLX_RED_SIZE, 8,
+          GLX_GREEN_SIZE, 8,
+          GLX_BLUE_SIZE, 8,
+          GLX_DEPTH_SIZE, 16,
+          None
+        };
+        vi = glXChooseVisual(display, screen, fallbackAttribs);
+        if (!vi) {
+            std::cerr << "Failed to choose fallback visual." << std::endl;
+            return false;
+        }
+    }
 
-  if (!glContext) {
-    std::cerr << "Failed to create GLX context." << std::endl;
-    return false;
-  }
+    // Create a colormap and window.
+    Colormap cmap = XCreateColormap(display, RootWindow(display, screen), vi->visual, AllocNone);
+    XSetWindowAttributes swa;
+    swa.colormap = cmap;
+    swa.event_mask = ExposureMask | KeyPressMask;
 
-  if (!glXMakeCurrent(display, window, glContext)) {
-    std::cerr << "Failed to make GLX context current." << std::endl;
-    return false;
-  }
+    window = XCreateWindow(display, RootWindow(display, screen), 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0,
+        vi->depth, InputOutput, vi->visual,
+        CWColormap | CWEventMask, &swa);
+    if (!window) {
+        std::cerr << "Failed to create window." << std::endl;
+        return false;
+    }
 
-  // Initialize GLEW.
-  glewExperimental = GL_TRUE; // Enable experimental extensions to access modern OpenGL features.
-  GLenum err = glewInit();
-  if (err != GLEW_OK) {
-    std::cerr << "GLEW initialization failed: " << glewGetErrorString(err) << std::endl;
-    return false;
-  }
+    XMapWindow(display, window);
+    XStoreName(display, window, "libnoise demonstration - Perlin worms");
 
-  // Print OpenGL version for debugging.
-  const GLubyte* glVersion = glGetString(GL_VERSION);
-  std::cout << "OpenGL version: " << (glVersion ? (const char*)glVersion : "unknown") << std::endl;
+    // Load the GLX extension for creating a modern context.
+    typedef GLXContext(*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+    glXCreateContextAttribsARBProc glXCreateContextAttribsARB = nullptr;
+    if (hasContextAttribsARB) {
+        glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
+        if (!glXCreateContextAttribsARB) {
+            std::cerr << "Failed to load glXCreateContextAttribsARB." << std::endl;
+            hasContextAttribsARB = false;
+        }
+    }
 
-  // Check for OpenGL errors after initialization.
-  GLenum glErr = glGetError();
-  if (glErr != GL_NO_ERROR) {
-    std::cerr << "OpenGL error after context initialization: " << glErr << std::endl;
-    return false;
-  }
+    // Create an OpenGL context.
+    if (hasContextAttribsARB) {
+        // Try to create an OpenGL 3.2 compatibility profile context.
+        int contextAttribs[] = {
+          GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+          GLX_CONTEXT_MINOR_VERSION_ARB, 2,
+          GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB, // Compatibility profile
+          None
+        };
 
-  // Check for glGenerateMipmap support using GLEW.
-  if (GLEW_VERSION_3_0) {
-    std::cout << "glGenerateMipmap is supported (GLEW_VERSION_3_0)." << std::endl;
-  } else if (GLEW_EXT_framebuffer_object) {
-    std::cout << "glGenerateMipmapEXT is supported (GLEW_EXT_framebuffer_object)." << std::endl;
-  } else {
-    std::cerr << "Neither glGenerateMipmap nor glGenerateMipmapEXT is supported. Mipmaps will not be generated." << std::endl;
-  }
+        // Choose an FBConfig that matches the visual.
+        int fbCount;
+        GLXFBConfig* fbc = glXChooseFBConfig(display, screen, glxAttribs, &fbCount);
+        if (!fbc) {
+            std::cerr << "Failed to choose FBConfig for OpenGL 3.2 compatibility context. Falling back to default context." << std::endl;
+            glContext = glXCreateContext(display, vi, NULL, GL_TRUE);
+        } else {
+            glContext = glXCreateContextAttribsARB(display, fbc[0], NULL, GL_TRUE, contextAttribs);
+            if (!glContext) {
+                std::cerr << "Failed to create OpenGL 3.2 compatibility context. Falling back to default context." << std::endl;
+                glContext = glXCreateContext(display, vi, NULL, GL_TRUE);
+            }
+            XFree(fbc);
+        }
+    } else {
+        // Fallback to a default context.
+        std::cerr << "GLX_ARB_create_context not available. Falling back to default context." << std::endl;
+        glContext = glXCreateContext(display, vi, NULL, GL_TRUE);
+    }
 
-  return true;
+    if (!glContext) {
+        std::cerr << "Failed to create GLX context." << std::endl;
+        return false;
+    }
+
+    if (!glXMakeCurrent(display, window, glContext)) {
+        std::cerr << "Failed to make GLX context current." << std::endl;
+        return false;
+    }
+
+    // Initialize GLEW.
+    glewExperimental = GL_TRUE; // Enable experimental extensions to access modern OpenGL features.
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        std::cerr << "GLEW initialization failed: " << glewGetErrorString(err) << std::endl;
+        return false;
+    }
+
+    // Print OpenGL version for debugging.
+    const GLubyte* glVersion = glGetString(GL_VERSION);
+    std::cout << "OpenGL version: " << (glVersion ? (const char*)glVersion : "unknown") << std::endl;
+
+    // Check for OpenGL errors after initialization.
+    GLenum glErr = glGetError();
+    if (glErr != GL_NO_ERROR) {
+        std::cerr << "OpenGL error after context initialization: " << glErr << std::endl;
+        return false;
+    }
+
+    // Check for glGenerateMipmap support using GLEW.
+    if (GLEW_VERSION_3_0) {
+        std::cout << "glGenerateMipmap is supported (GLEW_VERSION_3_0)." << std::endl;
+    } else if (GLEW_EXT_framebuffer_object) {
+        std::cout << "glGenerateMipmapEXT is supported (GLEW_EXT_framebuffer_object)." << std::endl;
+    } else {
+        std::cerr << "Neither glGenerateMipmap nor glGenerateMipmapEXT is supported. Mipmaps will not be generated." << std::endl;
+    }
+
+    return true;
 }
 
 void CleanupGLX()
